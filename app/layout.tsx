@@ -6,6 +6,7 @@ import { ToastProvider } from '@/lib/toast';
 import { AuthProvider } from '@/lib/auth';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import LoginDialog from '@/components/auth/LoginDialog';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://bikanerbakery.example'),
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Header />
               {children}
               <Footer />
+              <LoginDialog />
               </ToastProvider>
             </LocationProvider>
           </StoreProvider>

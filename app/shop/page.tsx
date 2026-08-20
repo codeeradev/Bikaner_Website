@@ -21,13 +21,14 @@ export default function ShopPage() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const { count } = useStore();
-  const { user } = useAuth();
-  const [catalogue, setCatalogue] = useState(allProducts);
+  const { user, hydrated } = useAuth();
+  const [catalogue, setCatalogue] = useState<typeof allProducts>([]);
 
   useEffect(() => {
-    if (!user) return;
-    void getProducts().then((items) => { if (items.length) setCatalogue(items); });
-  }, [user]);
+    if (!hydrated) return;
+    if (!user) { setCatalogue(allProducts); return; }
+    void getProducts().then((items) => setCatalogue(items));
+  }, [hydrated, user]);
 
   const filtered = useMemo(() => {
     let result = [...catalogue];
@@ -90,7 +91,7 @@ export default function ShopPage() {
             <p className="results-count">{filtered.length} products</p>
           </div>
 
-          <ProductGrid products={filtered} />
+          {!hydrated || (user && !catalogue.length) ? <div className="catalogue-loading">Loading fresh products…</div> : <ProductGrid products={filtered} />}
         </main>
 
         <CartSidebar />

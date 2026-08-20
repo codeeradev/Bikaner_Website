@@ -1,166 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { cities, areasByCity, type SavedAddress } from '@/data/addresses';
-import { useLocationStore } from '@/lib/location-store';
-import { useToast } from '@/lib/toast';
+import { useEffect, useState } from 'react';
+import { Crosshair, MapPinned } from 'lucide-react';
 import { request } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useLocationStore } from '@/lib/location-store';
+import { useToast } from '@/lib/toast';
 
-type Errors = {
-  city?: string;
-  area?: string;
-  fullAddress?: string;
-  receiverName?: string;
-  phone?: string;
-  mapLink?: string;
-};
-
+const defaultCoords = { lat: 28.0229, lng: 73.3119 };
 export default function AddressForm() {
-  const { addAddress, setLocation } = useLocationStore();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [form, setForm] = useState({
-    city: '',
-    area: '',
-    fullAddress: '',
-    mapLink: '',
-    receiverName: '',
-    phone: '',
-    label: 'Home' as SavedAddress['label'],
-  });
-  const [errors, setErrors] = useState<Errors>({});
-
-  function validate(): boolean {
-    const next: Errors = {};
-    if (!form.city) next.city = 'Please select a city';
-    if (!form.area) next.area = 'Please select an area';
-    if (!form.fullAddress) next.fullAddress = 'Please enter your complete address';
-    if (!form.receiverName) next.receiverName = 'Please enter receiver name';
-    if (!form.phone) next.phone = 'Please enter phone number';
-    else if (!/^\d{10}$/.test(form.phone)) next.phone = 'Enter a valid 10-digit mobile number';
-    if (form.mapLink && !/^https?:\/\/.+/.test(form.mapLink)) next.mapLink = 'Enter a valid URL';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-    const address: SavedAddress = {
-      id: Date.now().toString(),
-      ...form,
-    };
-    if (user) {
-      const position = await new Promise<GeolocationPosition | null>((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
-        navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 8000 });
-      });
-      const result = await request<{ _id: string }>('/addresses', { method: 'POST', body: JSON.stringify({
-        name: form.receiverName, mobile: form.phone, address: form.fullAddress, landmark: form.area, city: form.city,
-        addressType: form.label === 'Work' ? 'work' : form.label === 'Other' || form.label === 'Hotel' ? 'other' : 'home', isDefault: true,
-        lat: position?.coords.latitude ?? 28.0229, lng: position?.coords.longitude ?? 73.3119,
-      }) });
-      if (!result.data) return toast(result.message, 'error');
-      address.backendId = result.data._id;
-      window.localStorage.setItem('bb_selected_address', result.data._id);
-    }
-    addAddress(address);
-    setLocation(`${form.area}, ${form.city}`);
-    toast(user ? 'Address saved successfully' : 'Address saved locally. Sign in before placing your order.');
-    setForm({ city: '', area: '', fullAddress: '', mapLink: '', receiverName: '', phone: '', label: 'Home' });
-  }
-
-  const areas = form.city ? areasByCity[form.city] ?? [] : [];
-
-  return (
-    <form className="address-form" onSubmit={handleSubmit}>
-      <h3>Delivery Address</h3>
-
-      <div className="form-field">
-        <label>City</label>
-        <select value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value, area: '' })} className={errors.city ? 'error' : ''}>
-          <option value="">Select a city</option>
-          {cities.map((city) => <option key={city} value={city}>{city}</option>)}
-        </select>
-        {errors.city && <span className="field-error">{errors.city}</span>}
-      </div>
-
-      <div className="form-field">
-        <label>Area / Street</label>
-        <select value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} className={errors.area ? 'error' : ''} disabled={!form.city}>
-          <option value="">Choose your area</option>
-          {areas.map((area) => <option key={area} value={area}>{area}</option>)}
-        </select>
-        {errors.area && <span className="field-error">{errors.area}</span>}
-      </div>
-
-      <div className="form-field">
-        <label>Complete Address</label>
-        <textarea
-          placeholder="House / Flat / Building, Street, Landmark (Optional)"
-          value={form.fullAddress}
-          onChange={(e) => setForm({ ...form, fullAddress: e.target.value })}
-          className={errors.fullAddress ? 'error' : ''}
-          rows={3}
-        />
-        {errors.fullAddress && <span className="field-error">{errors.fullAddress}</span>}
-      </div>
-
-      <div className="form-field">
-        <label>Google Maps Link</label>
-        <input
-          type="text"
-          placeholder="Paste Google Maps link for accurate location"
-          value={form.mapLink}
-          onChange={(e) => setForm({ ...form, mapLink: e.target.value })}
-          className={errors.mapLink ? 'error' : ''}
-        />
-        {errors.mapLink && <span className="field-error">{errors.mapLink}</span>}
-      </div>
-
-      <div className="form-row">
-        <div className="form-field">
-          <label>Receiver Name</label>
-          <input
-            type="text"
-            placeholder="Receiver name"
-            value={form.receiverName}
-            onChange={(e) => setForm({ ...form, receiverName: e.target.value })}
-            className={errors.receiverName ? 'error' : ''}
-          />
-          {errors.receiverName && <span className="field-error">{errors.receiverName}</span>}
-        </div>
-        <div className="form-field">
-          <label>Phone Number</label>
-          <input
-            type="tel"
-            placeholder="10-digit mobile number"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-            className={errors.phone ? 'error' : ''}
-          />
-          {errors.phone && <span className="field-error">{errors.phone}</span>}
-        </div>
-      </div>
-
-      <div className="form-field">
-        <label>Save Address As</label>
-        <div className="label-options">
-          {(['Home', 'Work', 'Hotel', 'Other'] as const).map((label) => (
-            <button
-              key={label}
-              type="button"
-              className={form.label === label ? 'label-btn active' : 'label-btn'}
-              onClick={() => setForm({ ...form, label })}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <button type="submit" className="primary-button save-address-btn">Save Address</button>
-    </form>
-  );
+  const { user } = useAuth(); const { addAddress, setLocation } = useLocationStore(); const { toast } = useToast();
+  const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [coords, setCoords] = useState(defaultCoords);
+  const [form, setForm] = useState({ name: '', mobile: '', address: '', houseNo: '', floor: '', landmark: '', city: '', type: 'home' });
+  useEffect(() => { const openForm = () => setOpen(true); window.addEventListener('bb:add-address', openForm); return () => window.removeEventListener('bb:add-address', openForm); }, []);
+  useEffect(() => { if (user) setForm((current) => ({ ...current, name: current.name || user.name || '', mobile: current.mobile || user.mobile || '' })); }, [user]);
+  const useMyLocation = () => { if (!navigator.geolocation) return toast('Location is not supported in this browser', 'error'); navigator.geolocation.getCurrentPosition((position) => { setCoords({ lat: position.coords.latitude, lng: position.coords.longitude }); toast('Map updated to your current location'); }, () => toast('Could not get your location. Please allow location permission.', 'error'), { enableHighAccuracy: true, timeout: 10000 }); };
+  async function submit(event: React.FormEvent) { event.preventDefault(); if (!user) return window.dispatchEvent(new Event('bb:open-login')); if (!form.address.trim() || !form.city.trim()) return toast('Enter your area/address and city', 'error'); if (!/^\d{10}$/.test(form.mobile)) return toast('Enter a valid 10-digit mobile number', 'error'); setBusy(true); const result = await request<{ _id: string }>('/addresses', { method: 'POST', body: JSON.stringify({ name: form.name, mobile: form.mobile, address: form.address, house_No: form.houseNo, floor: form.floor ? Number(form.floor) : undefined, landmark: form.landmark, city: form.city, lat: coords.lat, lng: coords.lng, addressType: form.type, isDefault: true }) }); setBusy(false); if (!result.ok || !result.data) return toast(result.message, 'error'); window.localStorage.setItem('bb_selected_address', result.data._id); addAddress({ id: result.data._id, backendId: result.data._id, label: form.type === 'work' ? 'Work' : 'Home', city: form.city, area: form.address, fullAddress: [form.houseNo, form.address, form.landmark].filter(Boolean).join(', '), receiverName: form.name, phone: form.mobile }); setLocation(`${form.address}, ${form.city}`); toast('Delivery location saved'); setOpen(false); window.dispatchEvent(new Event('bb:address-saved')); }
+  if (!open) return null;
+  return <form className="address-form map-address-form" onSubmit={submit}><div className="address-form-title"><div><h3>Add delivery location</h3><p>Confirm the pin, then add your address details.</p></div><button type="button" className="text-button" onClick={() => setOpen(false)}>Cancel</button></div><div className="map-picker"><iframe title="Selected delivery area" src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - .02}%2C${coords.lat - .012}%2C${coords.lng + .02}%2C${coords.lat + .012}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`} /><div className="map-picker-action"><MapPinned size={17} /> Pin: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}<button type="button" onClick={useMyLocation}><Crosshair size={16} /> Use my location</button></div></div><div className="form-row"><div className="form-field"><label>Name</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Your name" /></div><div className="form-field"><label>Mobile number</label><input inputMode="numeric" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })} placeholder="10-digit mobile number" /></div></div><div className="form-row"><div className="form-field"><label>Area / address</label><input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Area, street or locality" required /></div><div className="form-field"><label>City</label><input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="City" required /></div></div><div className="form-row"><div className="form-field"><label>House / flat no. <small>(optional)</small></label><input value={form.houseNo} onChange={(e) => setForm({ ...form, houseNo: e.target.value })} /></div><div className="form-field"><label>Floor <small>(optional)</small></label><input inputMode="numeric" value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value.replace(/\D/g, '') })} /></div></div><div className="form-field"><label>Landmark <small>(optional)</small></label><input value={form.landmark} onChange={(e) => setForm({ ...form, landmark: e.target.value })} placeholder="Nearby landmark" /></div><button className="primary-button save-address-btn" disabled={busy}>{busy ? 'Saving…' : 'Save delivery location'}</button></form>;
 }

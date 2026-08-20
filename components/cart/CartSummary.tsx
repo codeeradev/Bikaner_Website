@@ -8,11 +8,13 @@ import { useToast } from '@/lib/toast';
 import CartItem from './CartItem';
 import FreeDeliveryProgress from './FreeDeliveryProgress';
 import { useLocationStore } from '@/lib/location-store';
+import { useAuth } from '@/lib/auth';
 
 export default function CartSummary({ onCheckout = false }: { onCheckout?: boolean }) {
   const { cart, itemTotal, deliveryCharge, packagingCharge, youSave, totalPayable, coupon, applyCoupon, removeCoupon, discount } = useStore();
   const { location } = useLocationStore();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [code, setCode] = useState('');
 
   function handleApply(e: React.FormEvent) {
@@ -54,7 +56,9 @@ export default function CartSummary({ onCheckout = false }: { onCheckout?: boole
           <FreeDeliveryProgress />
 
           <div className="coupon-row">
-            {coupon ? (
+            {user ? (coupon ? (
+              <div className="coupon-applied"><span><Tag size={14} /> {coupon} applied automatically</span></div>
+            ) : <p className="checkout-offer-note">Eligible offers and charges are calculated automatically from your cart.</p>) : coupon ? (
               <div className="coupon-applied">
                 <span><Tag size={14} /> {coupon} applied</span>
                 <button onClick={() => { removeCoupon(); toast('Coupon removed'); }} aria-label="Remove coupon"><X size={15} /></button>

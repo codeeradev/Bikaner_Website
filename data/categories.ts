@@ -13,5 +13,4 @@ export const categories: Category[] = [
   { id: 'snacks', name: 'Snacks', slug: 'snacks', icon: '🥟' },
   { id: 'pastries', name: 'Pastries', slug: 'pastries', icon: '🧁' },
   { id: 'desserts', name: 'Desserts', slug: 'desserts', icon: '🍮' },
-  { id: 'hampers', name: 'Gift Hampers', slug: 'gift-hampers', icon: '🎁' },
 ];

@@ -6,14 +6,20 @@ import Link from 'next/link';
 import type { Product } from '@/data/products';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem, toggleWishlist, wishlist, cart, increment, decrement } = useStore();
   const { toast } = useToast();
+  const { user } = useAuth();
   const isWishlisted = wishlist.includes(product.id);
   const cartLine = cart.find((line) => line.product.id === product.id);
 
   function handleAdd() {
+    if (!user) {
+      window.dispatchEvent(new Event('bb:open-login'));
+      return;
+    }
     addItem(product);
     toast(`${product.name} added to cart`);
   }
@@ -30,12 +36,12 @@ export default function ProductCard({ product }: { product: Product }) {
         >
           <Heart size={18} fill={isWishlisted ? 'currentColor' : 'none'} />
         </button>
-        <Link href={`/product/${product.slug}`} aria-label={product.name}>
+        <Link href={`/product/${product.id}`} aria-label={product.name}>
           <Image src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 16vw" style={{ objectFit: 'cover', mixBlendMode: 'multiply' }} />
         </Link>
       </div>
       <div className="product-details">
-        <Link href={`/product/${product.slug}`} className="product-title-link">
+        <Link href={`/product/${product.id}`} className="product-title-link">
           <h3>{product.name}</h3>
         </Link>
         <p>{product.weight} · {product.calories} kcal</p>

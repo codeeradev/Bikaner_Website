@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getPublicSettings, type PublicSettings } from '@/lib/api';
 
 const sections = [
   {
@@ -11,7 +13,6 @@ const sections = [
       { label: 'Breads', href: '/category/breads' },
       { label: 'Cookies', href: '/category/cookies' },
       { label: 'Snacks', href: '/category/snacks' },
-      { label: 'Gift Hampers', href: '/category/gift-hampers' },
     ],
   },
   {
@@ -37,6 +38,11 @@ const sections = [
 ];
 
 export default function Footer() {
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+  useEffect(() => { void getPublicSettings().then(setSettings); }, []);
+  const social = [
+    { label: 'Facebook', href: settings?.facebookUrl, Icon: Facebook }, { label: 'Instagram', href: settings?.instagramUrl, Icon: Instagram }, { label: 'Twitter', href: settings?.twitterUrl, Icon: Twitter },
+  ].filter((item) => item.href);
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -45,16 +51,14 @@ export default function Footer() {
             <span className="brand-mark"><span>♨</span></span>
             <span><strong>Bikaner</strong><em>Bakery</em></span>
           </div>
-          <p className="footer-tagline">Freshly baked goods delivered to your doorstep since 1985.</p>
+          <p className="footer-tagline">{settings?.siteDescription || 'Freshly baked goods delivered to your doorstep.'}</p>
           <div className="footer-contact">
-            <span><MapPin size={16} /> Bhamashah Nagar, Hisar, Haryana</span>
-            <span><Phone size={16} /> +91 98765 43210</span>
-            <span><Mail size={16} /> orders@bikanerbakery.in</span>
+            <span><MapPin size={16} /> Freshly baked and delivered near you</span>
+            {settings?.contactPhone && <span><Phone size={16} /> {settings.contactPhone}</span>}
+            {settings?.contactEmail && <span><Mail size={16} /> {settings.contactEmail}</span>}
           </div>
           <div className="footer-social">
-            <a href="#" aria-label="Facebook"><Facebook size={18} /></a>
-            <a href="#" aria-label="Instagram"><Instagram size={18} /></a>
-            <a href="#" aria-label="Twitter"><Twitter size={18} /></a>
+            {social.map(({ label, href, Icon }) => <a href={href} target="_blank" rel="noreferrer" aria-label={label} key={label}><Icon size={18} /></a>)}
           </div>
         </div>
 
@@ -78,7 +82,7 @@ export default function Footer() {
       </div>
       <div className="footer-bottom">
         <p>&copy; {new Date().getFullYear()} Bikaner Bakery. All rights reserved.</p>
-        <p>Made with love in Hisar</p>
+        <p>{settings?.siteTitle || 'Bikaner Bakery'} · Made with love</p>
       </div>
     </footer>
   );

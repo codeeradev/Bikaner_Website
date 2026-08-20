@@ -63,6 +63,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [coupon, setCoupon] = useState<string | null>(null);
+  const [serverTotals, setServerTotals] = useState<{ subtotal: number; deliveryCharge: number; platformFee: number; taxAmount: number; discountAmount: number; grandTotal: number; offerName?: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const syncCart = useCallback(async () => {
     if (!user) return;
-    const result = await request<{ items?: Array<{ productId?: { _id?: string; name?: string; image?: string; sku?: string }; quantity?: number; price?: number }>; appliedOffer?: { name?: string } | null }>('/cart');
+    const result = await request<{ items?: Array<{ productId?: { _id?: string; name?: string; image?: string; sku?: string }; quantity?: number; price?: number }>; appliedOffer?: { name?: string } | null; subtotal?: number; deliveryCharge?: number; platformFee?: number; taxAmount?: number; discountAmount?: number; grandTotal?: number }>('/cart');
     if (!result.data) return;
     const lines: CartLine[] = (result.data.items ?? []).flatMap((item) => {
       const product = item.productId;
@@ -85,6 +86,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
     setCart(lines);
     setCoupon(result.data.appliedOffer?.name || null);
+    setServerTotals({ subtotal: Number(result.data.subtotal ?? 0), deliveryCharge: Number(result.data.deliveryCharge ?? 0), platformFee: Number(result.data.platformFee ?? 0), taxAmount: Number(result.data.taxAmount ?? 0), discountAmount: Number(result.data.discountAmount ?? 0), grandTotal: Number(result.data.grandTotal ?? 0), offerName: result.data.appliedOffer?.name });
   }, [user]);
 
   useEffect(() => { if (authHydrated && user) void syncCart(); }, [authHydrated, user, syncCart]);
@@ -159,7 +161,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const deliveryCharge = itemTotal >= FREE_DELIVERY_THRESHOLD || itemTotal === 0 ? 0 : BASE_DELIVERY;
     const packagingCharge = cart.length ? PACKAGING_CHARGE : 0;
     const couponDiscount = coupon && coupons[coupon] ? Math.round((itemTotal * coupons[coupon].value) / 100) : 0;
-    const totalPayable = Math.max(0, itemTotal + deliveryCharge + packagingCharge - couponDiscount);
+    const useServerTotals = !!user && !!serverTotals;
+    const totalPayable = useServerTotals ? serverTotals.grandTotal : Math.max(0, itemTotal + deliveryCharge + packagingCharge - couponDiscount);
     const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - itemTotal);
     const freeDeliveryProgress = Math.min(100, (itemTotal / FREE_DELIVERY_THRESHOLD) * 100);
 
@@ -168,14 +171,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       itemTotal,
       originalTotal,
       youSave,
-      deliveryCharge,
-      packagingCharge,
-      discount: couponDiscount,
+      deliveryCharge: useServerTotals ? serverTotals.deliveryCharge : deliveryCharge,
+      packagingCharge: useServerTotals ? serverTotals.platformFee + serverTotals.taxAmount : packagingCharge,
+      discount: useServerTotals ? serverTotals.discountAmount : couponDiscount,
       totalPayable,
       amountToFreeDelivery,
       freeDeliveryProgress,
     };
-  }, [cart, coupon]);
+  }, [cart, coupon, serverTotals, user]);
 
   const value: StoreState = {
     cart,

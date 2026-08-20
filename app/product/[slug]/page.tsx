@@ -1,17 +1,31 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Heart, Minus, Plus, Star } from 'lucide-react';
 import Image from 'next/image';
 import { getProduct } from '@/data/products';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/lib/toast';
+import { getProductById } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
-  const product = getProduct(slug);
+  const fallbackProduct = getProduct(slug);
+  const [product, setProduct] = useState(fallbackProduct);
+  const [loadingProduct, setLoadingProduct] = useState(!fallbackProduct);
   const { addItem, toggleWishlist, wishlist, cart, increment, decrement } = useStore();
   const { toast } = useToast();
+  const { user, hydrated } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    setLoadingProduct(true);
+    void getProductById(slug).then((result) => { if (result) setProduct(result); setLoadingProduct(false); });
+  }, [slug, user]);
+
+  if (hydrated && user && loadingProduct) return <div className="page-content"><div className="empty-state"><p>Loading product…</p></div></div>;
 
   if (!product) {
     return (
@@ -63,7 +77,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
                 <button onClick={() => increment(product.id)} aria-label="Increase"><Plus size={18} /></button>
               </div>
             ) : (
-              <button className="primary-button" onClick={() => { addItem(product); toast(`${product.name} added to cart`); }}>
+              <button className="primary-button" onClick={() => { if (!user) return window.dispatchEvent(new Event('bb:open-login')); addItem(product); toast(`${product.name} added to cart`); }}>
                 Add to Cart
               </button>
             )}

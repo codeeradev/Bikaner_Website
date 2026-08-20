@@ -2,6 +2,7 @@
   "/not-found": "app/not-found.js",
   "/page": "app/page.js",
   "/shop/page": "app/shop/page.js",
-  "/login/page": "app/login/page.js",
+  "/product/[slug]/page": "app/product/[slug]/page.js",
+  "/checkout/address/page": "app/checkout/address/page.js",
   "/category/[slug]/page": "app/category/[slug]/page.js"
 }

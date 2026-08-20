@@ -34,4 +34,4 @@ export const products: Product[] = [
   { id: 'atta-bread', slug: 'atta-bread', name: 'Classic Atta Bread', category: 'Breads', weight: '400 g', price: 55, originalPrice: 60, discount: '8% OFF', rating: 4.3, reviews: 49, calories: 880, keywords: ['bread', 'atta'], image: images.bread },
 ];
 
-export const getProduct = (slug: string) => products.find((product) => product.slug === slug);
+export const getProduct = (slug: string) => products.find((product) => product.slug === slug || product.id === slug);

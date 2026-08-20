@@ -10,14 +10,17 @@ import { products } from '@/data/products';
 import { categories as fallbackCategories, type Category } from '@/data/categories';
 import { offers as fallbackOffers, type Offer } from '@/data/offers';
 import { getActiveOffers, getFeaturedProducts, getHomeBanners, getHomeCategories, type HomeBanner } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 export default function Home() {
   const [banners, setBanners] = useState<HomeBanner[]>([]);
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
-  const [featured, setFeatured] = useState(products.slice(0, 6));
-  const [offers, setOffers] = useState<Offer[]>(fallbackOffers);
+  const { user, hydrated } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featured, setFeatured] = useState<typeof products>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
+    if (!hydrated) return;
     let mounted = true;
     Promise.all([getHomeBanners(), getHomeCategories(), getFeaturedProducts(), getActiveOffers()]).then(([nextBanners, nextCategories, nextProducts, nextOffers]) => {
       if (!mounted) return;
@@ -25,9 +28,14 @@ export default function Home() {
       if (nextCategories.length) setCategories([{ id: 'all', name: 'All Categories', slug: 'all', icon: '▦' }, ...nextCategories]);
       if (nextProducts.length) setFeatured(nextProducts);
       if (nextOffers.length) setOffers(nextOffers);
+      if (!user) {
+        if (!nextCategories.length) setCategories(fallbackCategories);
+        if (!nextProducts.length) setFeatured(products.slice(0, 6));
+        if (!nextOffers.length) setOffers(fallbackOffers);
+      }
     });
     return () => { mounted = false; };
-  }, []);
+  }, [hydrated, user]);
 
   return (
     <div className="page-content" id="top">
@@ -40,7 +48,7 @@ export default function Home() {
             <h2>Featured Products</h2>
           </div>
         </div>
-        <ProductGrid products={featured} />
+        {featured.length ? <ProductGrid products={featured} /> : <div className="catalogue-loading">Loading fresh products…</div>}
       </section>
       <OffersBar offers={offers} />
       <BenefitsBar />

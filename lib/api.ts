@@ -12,8 +12,9 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:902
 
 type ApiResponse<T> = { success?: boolean; data?: T; message?: string };
 
-export type ApiResult<T> = { data: T | null; message: string; status: number };
+export type ApiResult<T> = { ok: boolean; data: T | null; message: string; status: number };
 export type AuthUser = { id: string; name?: string; email?: string; mobile?: string; profileImage?: string };
+export type PublicSettings = { siteTitle?: string; siteDescription?: string; contactEmail?: string; contactPhone?: string; aboutUs?: string; facebookUrl?: string; instagramUrl?: string; twitterUrl?: string; privacyPolicy?: string; termsAndConditions?: string; shippingPolicy?: string };
 
 export type HomeBanner = {
   id: string;
@@ -66,29 +67,37 @@ export function authHeaders(): HeadersInit {
 }
 
 async function get<T>(path: string, authenticated = false): Promise<T | null> {
+  const controller = new AbortController();
+  const timeout = window === undefined ? undefined : window.setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       headers: authenticated ? authHeaders() : undefined,
+      signal: controller.signal,
     });
     if (!response.ok) return null;
     const payload = (await response.json()) as ApiResponse<T>;
     return payload.success === false ? null : payload.data ?? null;
   } catch {
     return null;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
+  const controller = new AbortController();
+  const timeout = typeof window === 'undefined' ? undefined : window.setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
+      signal: controller.signal,
     });
     const payload = (await response.json()) as ApiResponse<T>;
-    return { data: response.ok && payload.success !== false ? payload.data ?? null : null, message: payload.message || 'Something went wrong', status: response.status };
+    return { ok: response.ok && payload.success !== false, data: response.ok && payload.success !== false ? payload.data ?? null : null, message: payload.message || 'Something went wrong', status: response.status };
   } catch {
-    return { data: null, message: 'Unable to connect to the bakery service. Please try again.', status: 0 };
-  }
+    return { ok: false, data: null, message: 'Unable to connect to the bakery service. Please try again.', status: 0 };
+  } finally { if (timeout) clearTimeout(timeout); }
 }
 
 export function sendOtp(identifier: string, type: 'email' | 'mobile') {
@@ -99,12 +108,12 @@ export async function verifyOtp(identifier: string, type: 'email' | 'mobile', ot
   try {
     const response = await fetch(`${API_URL}/auth/verify-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier, type, otp, name }) });
     const payload = await response.json() as { success?: boolean; message?: string; token?: string; user?: AuthUser };
-    return { data: response.ok && payload.success ? { ...payload.user, token: payload.token } as AuthUser & { token: string } : null, message: payload.message || 'Unable to verify OTP', status: response.status };
-  } catch { return { data: null, message: 'Unable to connect to the bakery service. Please try again.', status: 0 }; }
+    return { ok: response.ok && !!payload.success, data: response.ok && payload.success ? { ...payload.user, token: payload.token } as AuthUser & { token: string } : null, message: payload.message || 'Unable to verify OTP', status: response.status };
+  } catch { return { ok: false, data: null, message: 'Unable to connect to the bakery service. Please try again.', status: 0 }; }
 }
 
-const categoryIcon = (name: string) => {
-  const value = name.toLowerCase();
+const categoryIcon = (name?: string) => {
+  const value = (name || '').toLowerCase();
   if (value.includes('cake')) return '🍰';
   if (value.includes('bread')) return '🥖';
   if (value.includes('cookie') || value.includes('biscuit')) return '🍪';
@@ -125,12 +134,16 @@ export async function getHomeBanners(): Promise<HomeBanner[]> {
   }));
 }
 
+export async function getPublicSettings(): Promise<PublicSettings | null> {
+  return get<PublicSettings>('/settings');
+}
+
 export async function getHomeCategories(): Promise<Category[]> {
   const categories = await get<ApiCategory[]>('/categories');
-  return (categories ?? []).map((category) => ({
+  return (categories ?? []).filter((category) => category.name && !/gift\s*hamper/i.test(category.name)).map((category) => ({
     id: category._id,
     name: category.name,
-    slug: category.slug || category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    slug: category.slug || (category.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     icon: categoryIcon(category.name),
   }));
 }
@@ -147,11 +160,16 @@ export async function getProducts(search = ''): Promise<Product[]> {
   return mapProducts(products ?? []);
 }
 
+export async function getProductById(id: string): Promise<Product | null> {
+  const product = await get<ApiProduct>(`/products/${id}`, true);
+  return product ? mapProducts([product])[0] : null;
+}
+
 function mapProducts(products: ApiProduct[]): Product[] {
   return products.map((product) => {
     const price = Number(product.displayPrice ?? product.sellingPrice ?? product.mrp ?? 0);
     const originalPrice = Number(product.mrp ?? 0);
-    const category = typeof product.categoryId === 'object' ? product.categoryId?.name ?? 'Bakery' : 'Bakery';
+    const category = typeof product.categoryId === 'object' ? product.categoryId?.name || 'Bakery' : 'Bakery';
     const discount = product.discountValue
       ? `${product.discountValue}% OFF`
       : originalPrice > price ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF` : undefined;
@@ -159,7 +177,7 @@ function mapProducts(products: ApiProduct[]): Product[] {
     return {
       id: product._id,
       slug: product.slug || product._id,
-      name: product.name,
+      name: product.name || 'Fresh bakery item',
       category,
       weight: product.unitValue && product.unit ? `${product.unitValue} ${product.unit}` : 'Freshly baked',
       price,
@@ -168,7 +186,7 @@ function mapProducts(products: ApiProduct[]): Product[] {
       rating: 0,
       reviews: 0,
       calories: 0,
-      keywords: [product.name.toLowerCase(), category.toLowerCase()],
+      keywords: [(product.name || '').toLowerCase(), category.toLowerCase()],
       image: assetUrl(product.image) || fallbackProductImage,
     };
   });

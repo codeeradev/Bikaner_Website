@@ -9,14 +9,13 @@ import { useLocationStore } from '@/lib/location-store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 
-const navItems = ['Home', 'Cakes', 'Breads', 'Cookies', 'Snacks', 'Gift Hampers', 'Combo Offers', 'Bestsellers', 'New Arrivals'];
+const navItems = ['Home', 'Cakes', 'Breads', 'Cookies', 'Snacks', 'Combo Offers', 'Bestsellers', 'New Arrivals'];
 
 const categoryRoutes: Record<string, string> = {
   Cakes: '/category/cakes',
   Breads: '/category/breads',
   Cookies: '/category/cookies',
   Snacks: '/category/snacks',
-  'Gift Hampers': '/category/gift-hampers',
 };
 
 export default function Header() {
@@ -80,7 +79,7 @@ export default function Header() {
             </button>
             {accountOpen && (
               <div className="dropdown-menu account-menu">
-                {!user ? <Link href="/login" onClick={() => setAccountOpen(false)}>Login / Sign up</Link> : <>
+                {!user ? <button onClick={() => { setAccountOpen(false); window.dispatchEvent(new Event('bb:open-login')); }}>Login / Sign up</button> : <>
                   <Link href="/orders" onClick={() => setAccountOpen(false)}>My Orders</Link>
                   <Link href="/checkout/address" onClick={() => setAccountOpen(false)}>Saved Addresses</Link>
                   <Link href="/wishlist" onClick={() => setAccountOpen(false)}>Wishlist</Link>
