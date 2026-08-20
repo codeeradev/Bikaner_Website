@@ -3,18 +3,10 @@
 import Link from 'next/link';
 import { Facebook, Instagram, Mail, MapPin, Phone, Twitter } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getPublicSettings, type PublicSettings } from '@/lib/api';
+import { getHomeCategories, getPublicSettings, type PublicSettings } from '@/lib/api';
+import type { Category } from '@/data/categories';
 
 const sections = [
-  {
-    title: 'Shop',
-    links: [
-      { label: 'Cakes', href: '/category/cakes' },
-      { label: 'Breads', href: '/category/breads' },
-      { label: 'Cookies', href: '/category/cookies' },
-      { label: 'Snacks', href: '/category/snacks' },
-    ],
-  },
   {
     title: 'Company',
     links: [
@@ -36,7 +28,9 @@ const sections = [
 
 export default function Footer() {
   const [settings, setSettings] = useState<PublicSettings | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   useEffect(() => { void getPublicSettings().then(setSettings); }, []);
+  useEffect(() => { void getHomeCategories().then(setCategories); }, []);
   const social = [
     { label: 'Facebook', href: settings?.facebookUrl, Icon: Facebook }, { label: 'Instagram', href: settings?.instagramUrl, Icon: Instagram }, { label: 'Twitter', href: settings?.twitterUrl, Icon: Twitter },
   ].filter((item) => item.href);
@@ -59,6 +53,7 @@ export default function Footer() {
           </div>
         </div>
 
+        {categories.length > 0 && <div className="footer-col"><h4>Shop</h4>{categories.map((category) => <Link href={`/category/${category.id}`} key={category.id}>{category.name}</Link>)}</div>}
         {sections.map((section) => (
           <div className="footer-col" key={section.title}>
             <h4>{section.title}</h4>

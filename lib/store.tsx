@@ -21,6 +21,7 @@ type StoreState = {
   toggleWishlist: (id: string) => void;
   applyCoupon: (code: string) => { ok: boolean; message: string };
   removeCoupon: () => void;
+  refreshCart: () => Promise<void>;
   count: number;
   itemTotal: number;
   originalTotal: number;
@@ -193,6 +194,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toggleWishlist,
     applyCoupon,
     removeCoupon,
+    refreshCart: syncCart,
     freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
     ...totals,
   };

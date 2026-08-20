@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, ShoppingCart } from 'lucide-react';
-import { products as allProducts } from '@/data/products';
+import { type Product } from '@/data/products';
 import ProductGrid from '@/components/products/ProductGrid';
 import ProductFilters, { type Filters, defaultFilters } from '@/components/products/ProductFilters';
 import CartSidebar from '@/components/cart/CartSidebar';
@@ -22,11 +22,11 @@ export default function ShopPage() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const { count } = useStore();
   const { user, hydrated } = useAuth();
-  const [catalogue, setCatalogue] = useState<typeof allProducts>([]);
+  const [catalogue, setCatalogue] = useState<Product[]>([]);
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!user) { setCatalogue(allProducts); return; }
+    if (!user) { setCatalogue([]); return; }
     void getProducts().then((items) => setCatalogue(items));
   }, [hydrated, user]);
 

@@ -3,23 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronDown, MapPin, Menu, Search, ShoppingCart, UserRound, X } from 'lucide-react';
+import { ChevronDown, MapPin, MapPinned, Menu, Search, ShoppingCart, UserRound, X } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useLocationStore } from '@/lib/location-store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { getProducts } from '@/lib/api';
-import { products as fallbackProducts } from '@/data/products';
+import { getHomeCategories, getProducts } from '@/lib/api';
+import type { Category } from '@/data/categories';
 import Image from 'next/image';
-
-const navItems = ['Home', 'Cakes', 'Breads', 'Cookies', 'Snacks', 'Combo Offers', 'Bestsellers', 'New Arrivals'];
-
-const categoryRoutes: Record<string, string> = {
-  Cakes: '/category/cakes',
-  Breads: '/category/breads',
-  Cookies: '/category/cookies',
-  Snacks: '/category/snacks',
-};
 
 export default function Header() {
   const pathname = usePathname();
@@ -31,17 +22,19 @@ export default function Header() {
   const [locationOpen, setLocationOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<typeof fallbackProducts>([]);
+  const [suggestions, setSuggestions] = useState<import('@/data/products').Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const locations = ['Bhamashah Nagar, Hisar', 'Model Town, Hisar', 'Civil Lines, Hisar', 'Sector 17, Chandigarh', 'Connaught Place, Delhi'];
 
   useEffect(() => {
     const query = search.trim();
     if (!query) return setSuggestions([]);
-    if (!user) return setSuggestions(fallbackProducts.filter((product) => product.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5));
+    if (!user) return setSuggestions([]);
     const timer = window.setTimeout(() => { void getProducts(query).then((items) => setSuggestions(items.slice(0, 5))); }, 250);
     return () => window.clearTimeout(timer);
   }, [search, user]);
+  useEffect(() => { void getHomeCategories().then(setCategories); }, []);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +74,7 @@ export default function Header() {
                   </button>
                 ))}
                 <button onClick={() => { if (!navigator.geolocation) return toast('Location is not supported in this browser', 'error'); navigator.geolocation.getCurrentPosition((position) => { setLocation(`Map location (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`); setLocationOpen(false); toast('Current map location selected'); }, () => toast('Please allow location permission to use the map location.', 'error')); }}>Use my current map location</button>
+                <button className="map-location-option" onClick={() => { setLocationOpen(false); window.location.href = '/checkout/address?map=1'; }}><MapPinned size={16} /> Choose a location on map</button>
               </div>
             )}
           </div>
@@ -115,12 +109,9 @@ export default function Header() {
         </button>
       </div>
 
-      <nav className={menuOpen ? 'nav open' : 'nav'}>
-        {navItems.map((item) => {
-          const href = item === 'Home' ? '/' : categoryRoutes[item] ?? '/shop';
-          const isActive = item === 'Home' ? pathname === '/' : pathname === href;
-          return <Link className={isActive ? 'active' : ''} href={href} key={item} onClick={() => setMenuOpen(false)}>{item}</Link>;
-        })}
+      <nav className={menuOpen ? 'nav open' : 'nav'} aria-label="Categories">
+        <Link className={pathname === '/' ? 'active' : ''} href="/" onClick={() => setMenuOpen(false)}>Home</Link>
+        {categories.map((category) => <Link className={pathname === `/category/${category.id}` ? 'active' : ''} href={`/category/${category.id}`} key={category.id} onClick={() => setMenuOpen(false)}>{category.name}</Link>)}
       </nav>
     </header>
   );

@@ -165,8 +165,13 @@ export async function getProductById(id: string): Promise<Product | null> {
   return product ? mapProducts([product])[0] : null;
 }
 
+export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
+  const products = await get<ApiProduct[]>(`/products/category/${categoryId}`, true);
+  return mapProducts(products ?? []);
+}
+
 function mapProducts(products: ApiProduct[]): Product[] {
-  return products.map((product) => {
+  return products.filter((product) => !!product._id && !!product.name).map((product) => {
     const price = Number(product.displayPrice ?? product.sellingPrice ?? product.mrp ?? 0);
     const originalPrice = Number(product.mrp ?? 0);
     const category = typeof product.categoryId === 'object' ? product.categoryId?.name || 'Bakery' : 'Bakery';
@@ -177,7 +182,7 @@ function mapProducts(products: ApiProduct[]): Product[] {
     return {
       id: product._id,
       slug: product.slug || product._id,
-      name: product.name || 'Fresh bakery item',
+      name: product.name,
       category,
       weight: product.unitValue && product.unit ? `${product.unitValue} ${product.unit}` : 'Freshly baked',
       price,

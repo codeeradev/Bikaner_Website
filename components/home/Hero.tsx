@@ -6,6 +6,7 @@ import type { HomeBanner } from '@/lib/api';
 
 export default function Hero({ banner }: { banner?: HomeBanner }) {
   const title = banner?.title || 'Fresh bakery delivered to your door';
+  const shopHref = banner?.productId ? `/product/${banner.productId}` : '/shop';
 
   return (
     <section className="hero">
@@ -17,7 +18,7 @@ export default function Hero({ banner }: { banner?: HomeBanner }) {
           enjoy your favorites delivered fast &amp; fresh.
         </p>
         <div className="hero-actions">
-          <Link className="primary-button" href="/shop">Shop Now <ArrowRight size={19} /></Link>
+          <Link className="primary-button" href={shopHref}>{banner?.productId ? 'View Product' : 'Shop Now'} <ArrowRight size={19} /></Link>
           <a className="outline-button" href="#offers">View Offers <Tag size={17} /></a>
         </div>
         <div className="trust-row">

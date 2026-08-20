@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { categories as fallbackCategories, type Category } from '@/data/categories';
+import type { Category } from '@/data/categories';
 
-export default function CategoryStrip({ categories = fallbackCategories }: { categories?: Category[] }) {
+export default function CategoryStrip({ categories }: { categories: Category[] }) {
   const [active, setActive] = useState('All Categories');
 
   return (
@@ -13,7 +13,7 @@ export default function CategoryStrip({ categories = fallbackCategories }: { cat
         <Link
           key={category.id}
           className={active === category.name ? 'category active' : 'category'}
-          href={`/category/${category.slug}`}
+          href={`/category/${category.id === 'all' ? 'all' : category.id}`}
           onClick={() => setActive(category.name)}
         >
           <span className="category-icon">{category.icon}</span>
