@@ -18,21 +18,18 @@ const sections = [
   {
     title: 'Company',
     links: [
-      { label: 'About Us', href: '#' },
-      { label: 'Our Story', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Contact', href: '#' },
+      { label: 'About Us', href: '/info/about' },
+      { label: 'Contact', href: '/info/contact' },
     ],
   },
   {
     title: 'Help',
     links: [
-      { label: 'Track Order', href: '#' },
-      { label: 'Delivery Info', href: '#' },
-      { label: 'Returns', href: '#' },
-      { label: 'FAQ', href: '#' },
-      { label: 'Privacy Policy', href: '#' },
+      { label: 'My Orders', href: '/orders' },
+      { label: 'Delivery Address', href: '/checkout/address' },
+      { label: 'Shipping Policy', href: '/info/shipping' },
+      { label: 'Privacy Policy', href: '/info/privacy' },
+      { label: 'Terms & Conditions', href: '/info/terms' },
     ],
   },
 ];

@@ -68,7 +68,7 @@ export function authHeaders(): HeadersInit {
 
 async function get<T>(path: string, authenticated = false): Promise<T | null> {
   const controller = new AbortController();
-  const timeout = window === undefined ? undefined : window.setTimeout(() => controller.abort(), 10000);
+  const timeout = typeof window === 'undefined' ? undefined : window.setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       headers: authenticated ? authHeaders() : undefined,

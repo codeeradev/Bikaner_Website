@@ -2,12 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, MapPin, Menu, Search, ShoppingCart, UserRound, X } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { useLocationStore } from '@/lib/location-store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
+import { getProducts } from '@/lib/api';
+import { products as fallbackProducts } from '@/data/products';
+import Image from 'next/image';
 
 const navItems = ['Home', 'Cakes', 'Breads', 'Cookies', 'Snacks', 'Combo Offers', 'Bestsellers', 'New Arrivals'];
 
@@ -28,8 +31,17 @@ export default function Header() {
   const [locationOpen, setLocationOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [suggestions, setSuggestions] = useState<typeof fallbackProducts>([]);
 
   const locations = ['Bhamashah Nagar, Hisar', 'Model Town, Hisar', 'Civil Lines, Hisar', 'Sector 17, Chandigarh', 'Connaught Place, Delhi'];
+
+  useEffect(() => {
+    const query = search.trim();
+    if (!query) return setSuggestions([]);
+    if (!user) return setSuggestions(fallbackProducts.filter((product) => product.name.toLowerCase().includes(query.toLowerCase())).slice(0, 5));
+    const timer = window.setTimeout(() => { void getProducts(query).then((items) => setSuggestions(items.slice(0, 5))); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search, user]);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -50,6 +62,7 @@ export default function Header() {
         <form className="search-box" onSubmit={submitSearch}>
           <Search size={21} strokeWidth={2} />
           <input aria-label="Search products" placeholder="Search for cakes, cookies, breads..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {suggestions.length > 0 && <div className="search-suggestions">{suggestions.map((product) => <Link href={`/product/${product.id}`} key={product.id} onClick={() => setSearch('')}><Image src={product.image} alt="" width={38} height={38} /><span>{product.name}<small>₹{product.price}</small></span></Link>)}</div>}
         </form>
 
         <div className="header-controls">
@@ -67,6 +80,7 @@ export default function Header() {
                     {loc}
                   </button>
                 ))}
+                <button onClick={() => { if (!navigator.geolocation) return toast('Location is not supported in this browser', 'error'); navigator.geolocation.getCurrentPosition((position) => { setLocation(`Map location (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`); setLocationOpen(false); toast('Current map location selected'); }, () => toast('Please allow location permission to use the map location.', 'error')); }}>Use my current map location</button>
               </div>
             )}
           </div>
