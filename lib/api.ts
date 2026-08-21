@@ -190,11 +190,13 @@ function mapProducts(products: ApiProduct[]): Product[] {
       ? `${product.discountValue}% OFF`
       : originalPrice > price ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF` : undefined;
 
-    const nutritionEntries = Object.entries(product.nutritionValues ?? {}).map(([name, nutrition]) => ({
-      name,
-      value: Number(nutrition?.value ?? 0),
-      unit: nutrition?.unit ?? '',
-    }));
+    const nutritionEntries = product.nutritionValues && typeof product.nutritionValues === 'object' && Object.keys(product.nutritionValues).length > 0
+      ? Object.entries(product.nutritionValues).map(([name, nutrition]) => ({
+          name,
+          value: Number(nutrition?.value ?? 0),
+          unit: nutrition?.unit ?? '',
+        }))
+      : [];
 
     // Extract calories from nutrition values
     const caloriesEntry = nutritionEntries.find(
@@ -218,8 +220,8 @@ function mapProducts(products: ApiProduct[]): Product[] {
       image: assetUrl(product.image) || fallbackProductImage,
       description: product.description,
       sku: product.sku,
-      ingredients: product.ingredients ?? [],
-      nutrition: nutritionEntries,
+      ingredients: product.ingredients && product.ingredients.length > 0 ? product.ingredients : undefined,
+      nutrition: nutritionEntries.length > 0 ? nutritionEntries : undefined,
       stock: product.stock,
     };
   });

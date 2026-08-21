@@ -7,7 +7,7 @@ import BenefitsBar from '@/components/home/BenefitsBar';
 import ProductGrid from '@/components/products/ProductGrid';
 import { type Product } from '@/data/products';
 import { type Category } from '@/data/categories';
-import { getFeaturedProducts, getHomeBanners, getHomeCategories, type HomeBanner } from '@/lib/api';
+import { getFeaturedProducts, getHomeBanners, getHomeCategories, getProducts, type HomeBanner } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 export default function Home() {
@@ -15,14 +15,25 @@ export default function Home() {
   const { user, hydrated } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featured, setFeatured] = useState<Product[]>([]);
+  const [recommended, setRecommended] = useState<Product[]>([]);
 
   useEffect(() => {
     if (!hydrated) return;
     let mounted = true;
-    Promise.all([getHomeBanners(), getHomeCategories(), getFeaturedProducts()]).then(([nextBanners, nextCategories, nextProducts]) => {
+    Promise.all([
+      getHomeBanners(), 
+      getHomeCategories(), 
+      getProducts(''),
+      getFeaturedProducts()
+    ]).then(([nextBanners, nextCategories, allProducts, nextProducts]) => {
       if (!mounted) return;
       if (nextBanners.length) setBanners(nextBanners);
       if (nextCategories.length) setCategories([{ id: 'all', name: 'All Categories', slug: 'all', icon: '▦' }, ...nextCategories]);
+      // Get 6 random products for "You might need"
+      if (allProducts.length) {
+        const shuffled = [...allProducts].sort(() => Math.random() - 0.5);
+        setRecommended(shuffled.slice(0, 6));
+      }
       if (nextProducts.length) setFeatured(nextProducts);
     });
     return () => { mounted = false; };
@@ -32,6 +43,15 @@ export default function Home() {
     <div className="page-content" id="top">
       <Hero banner={banners[0]} />
       <CategoryStrip categories={categories} />
+      {recommended.length > 0 && <section className="products-section" id="recommended">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Freshly baked</p>
+            <h2>You might need</h2>
+          </div>
+        </div>
+        <ProductGrid products={recommended} />
+      </section>}
       <section className="products-section" id="products">
         <div className="section-heading">
           <div>

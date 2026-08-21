@@ -54,10 +54,10 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
         <div className="product-detail-info">
           <p className="eyebrow">{product.category}</p>
           <h1>{product.name}</h1>
-          <div className="rating-row">
-            <span className="rating"><Star size={14} fill="currentColor" /> {product.rating}</span>
-            <span className="reviews">{product.reviews} reviews</span>
-          </div>
+          {(product.rating > 0 || product.reviews > 0) && <div className="rating-row">
+            {product.rating > 0 && <span className="rating"><Star size={14} fill="currentColor" /> {product.rating}</span>}
+            {product.reviews > 0 && <span className="reviews">{product.reviews} reviews</span>}
+          </div>}
           <p className="product-weight">{product.weight}{product.calories > 0 ? ` · ${product.calories} kcal` : ''}</p>
           <div className="product-price-row">
             <strong className="price">₹{product.price}</strong>

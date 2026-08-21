@@ -45,10 +45,10 @@ export default function ProductCard({ product }: { product: Product }) {
           <h3>{product.name}</h3>
         </Link>
         <p>{product.weight}{product.calories > 0 ? ` · ${product.calories} kcal` : ''}</p>
-        <div className="rating-row">
-          <span className="rating"><Star size={12} fill="currentColor" /> {product.rating}</span>
-          <span className="reviews">{product.reviews} reviews</span>
-        </div>
+        {(product.rating > 0 || product.reviews > 0) && <div className="rating-row">
+          {product.rating > 0 && <span className="rating"><Star size={12} fill="currentColor" /> {product.rating}</span>}
+          {product.reviews > 0 && <span className="reviews">{product.reviews} reviews</span>}
+        </div>}
         <div className="product-footer">
           <div>
             <strong>₹{product.price}</strong>
