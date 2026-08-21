@@ -1,38 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, ChevronDown, Tag, X } from 'lucide-react';
+import { ArrowRight, Check, Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useToast } from '@/lib/toast';
 import CartItem from './CartItem';
-import FreeDeliveryProgress from './FreeDeliveryProgress';
 import { useLocationStore } from '@/lib/location-store';
 import { useAuth } from '@/lib/auth';
-import { offers as fallbackOffers, type Offer } from '@/data/offers';
+import type { Offer } from '@/data/offers';
 import { getActiveOffers, request } from '@/lib/api';
 
 export default function CartSummary({ onCheckout = false }: { onCheckout?: boolean }) {
-  const { cart, itemTotal, deliveryCharge, packagingCharge, youSave, totalPayable, coupon, applyCoupon, removeCoupon, refreshCart, discount } = useStore();
+  const { cart, itemTotal, deliveryCharge, packagingCharge, youSave, totalPayable, coupon, refreshCart, discount } = useStore();
   const { location } = useLocationStore();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [code, setCode] = useState('');
-  const [availableOffers, setAvailableOffers] = useState<Offer[]>(fallbackOffers);
+  const [availableOffers, setAvailableOffers] = useState<Offer[]>([]);
   const [selectedOffer, setSelectedOffer] = useState('');
   const [changingOffer, setChangingOffer] = useState(false);
 
   useEffect(() => {
-    if (!user || cart.length === 0) { setAvailableOffers(fallbackOffers); return; }
-    void getActiveOffers().then((items) => setAvailableOffers(items.length ? items : fallbackOffers));
+    if (!user || cart.length === 0) { setAvailableOffers([]); return; }
+    void getActiveOffers().then(setAvailableOffers);
   }, [cart.length, user]);
 
-  function handleApply(e: React.FormEvent) {
-    e.preventDefault();
-    const result = applyCoupon(code);
-    toast(result.message, result.ok ? 'success' : 'error');
-    if (result.ok) setCode('');
-  }
+  const eligible = (offer: Offer) => {
+    if (itemTotal < (offer.minCartValue ?? 0)) return false;
+    return offer.applicableOn !== 'specific_products' || (offer.specificProductIds ?? []).some((id) => cart.some((line) => line.product.id === id));
+  };
 
   async function chooseOffer(value: string) {
     setSelectedOffer(value);
@@ -43,15 +39,13 @@ export default function CartSummary({ onCheckout = false }: { onCheckout?: boole
         setChangingOffer(false);
         if (result.ok) { await refreshCart(); toast('Offer removed'); }
         else toast(result.message, 'error');
-      } else {
-        removeCoupon();
-        toast('Offer removed');
       }
       return;
     }
     const offer = availableOffers.find((item) => item.id === value);
     if (!offer) return;
     if (user) {
+      if (!eligible(offer)) { setSelectedOffer(''); toast(`Add ₹${Math.max(0, (offer.minCartValue ?? 0) - itemTotal)} more or add an eligible product for this offer.`, 'error'); return; }
       setChangingOffer(true);
       // The API permits one cart offer at a time, so clear any current offer
       // before selecting a different one from this dropdown.
@@ -61,14 +55,6 @@ export default function CartSummary({ onCheckout = false }: { onCheckout?: boole
       if (result.ok) { await refreshCart(); toast(`${offer.title} applied`); }
       else { setSelectedOffer(''); toast(result.message, 'error'); }
       return;
-    }
-    if (offer.code) {
-      const result = applyCoupon(offer.code);
-      if (result.ok) toast(result.message, 'success');
-      else { setSelectedOffer(''); toast(result.message, 'error'); }
-    } else {
-      setSelectedOffer('');
-      toast('This offer is applied automatically when its condition is met.');
     }
   }
 
@@ -101,36 +87,23 @@ export default function CartSummary({ onCheckout = false }: { onCheckout?: boole
             {cart.map((line) => <CartItem key={line.product.id} line={line} />)}
           </div>
 
-          <FreeDeliveryProgress />
-
-          <section className="cart-offers" aria-label="Available offers">
+          {user && availableOffers.length > 0 && <section className="cart-offers" aria-label="Available offers">
             <div className="cart-offers-heading"><Tag size={15} /><b>Offers for you</b></div>
-            <label className="offer-select-wrap">
-              <span className="sr-only">Select an offer</span>
-              <select value={selectedOffer} onChange={(event) => void chooseOffer(event.target.value)} disabled={changingOffer}>
-                <option value="">{coupon ? `${coupon} applied — select to change` : 'Select an offer'}</option>
-                {availableOffers.map((offer) => <option value={offer.id} key={offer.id}>{offer.title} — {offer.subtitle}</option>)}
-              </select>
-              <ChevronDown size={16} />
-            </label>
-            {availableOffers.map((offer) => <div className="cart-offer" key={offer.id}><span>{offer.icon}</span><p><b>{offer.title}</b><small>{offer.subtitle}{offer.code ? ` · Use ${offer.code}` : ''}</small></p></div>)}
-          </section>
+            <p className="offer-help">Choose one offer for this order. Eligible offers can be applied right away.</p>
+            <div className="offer-list">
+              {availableOffers.map((offer) => {
+                const isEligible = eligible(offer);
+                const active = selectedOffer === offer.id || coupon === offer.title;
+                return <button type="button" className={active ? 'cart-offer selected' : 'cart-offer'} key={offer.id} disabled={!isEligible || changingOffer} onClick={() => void chooseOffer(active ? '' : offer.id)}><span>{active ? <Check size={14} /> : offer.icon}</span><p><b>{offer.title}</b><small>{isEligible ? offer.subtitle : `Add ₹${Math.max(0, (offer.minCartValue ?? 0) - itemTotal)} more to use this offer`}{offer.applicableOn === 'specific_products' ? ' · Valid on selected products' : ''}</small></p></button>;
+              })}
+            </div>
+          </section>}
 
-          <div className="coupon-row">
-            {user ? (coupon ? (
+          {user && <div className="coupon-row">
+            {coupon ? (
               <div className="coupon-applied"><span><Tag size={14} /> {coupon} applied automatically</span></div>
-            ) : <p className="checkout-offer-note">Eligible offers and charges are calculated automatically from your cart.</p>) : coupon ? (
-              <div className="coupon-applied">
-                <span><Tag size={14} /> {coupon} applied</span>
-                <button onClick={() => { removeCoupon(); toast('Coupon removed'); }} aria-label="Remove coupon"><X size={15} /></button>
-              </div>
-            ) : (
-              <form onSubmit={handleApply} className="coupon-form">
-                <input type="text" placeholder="Enter coupon code" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Coupon code" />
-                <button type="submit">Apply</button>
-              </form>
-            )}
-          </div>
+            ) : null}
+          </div>}
 
           <div className="cart-totals">
             <div className="total-row"><span>Item Total</span><span>₹{itemTotal}</span></div>

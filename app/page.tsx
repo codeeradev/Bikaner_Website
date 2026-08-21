@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Hero from '@/components/home/Hero';
 import CategoryStrip from '@/components/home/CategoryStrip';
 import BenefitsBar from '@/components/home/BenefitsBar';
-import OffersBar from '@/components/home/OffersBar';
 import ProductGrid from '@/components/products/ProductGrid';
 import { type Product } from '@/data/products';
 import { type Category } from '@/data/categories';
@@ -33,7 +32,6 @@ export default function Home() {
     <div className="page-content" id="top">
       <Hero banner={banners[0]} />
       <CategoryStrip categories={categories} />
-      <OffersBar />
       <section className="products-section" id="products">
         <div className="section-heading">
           <div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { defaultLocation } from '@/data/addresses';
 import type { SavedAddress } from '@/data/addresses';
 
 type LocationState = {
@@ -14,12 +13,12 @@ type LocationState = {
 const LocationContext = createContext<LocationState | null>(null);
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
-  const [location, setLocationState] = useState(defaultLocation);
+  const [location, setLocationState] = useState('Choose a delivery location');
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setLocationState(window.localStorage.getItem('bb_location') || defaultLocation);
+    setLocationState(window.localStorage.getItem('bb_location') || 'Choose a delivery location');
     setAddresses(JSON.parse(window.localStorage.getItem('bb_addresses') || '[]'));
     setHydrated(true);
   }, []);

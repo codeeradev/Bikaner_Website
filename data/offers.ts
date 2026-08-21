@@ -4,6 +4,11 @@ export type Offer = {
   subtitle: string;
   code?: string;
   icon: string;
+  offerType?: 'flat_discount' | 'percentage_discount' | 'bogo';
+  applicableOn?: 'cart' | 'specific_products';
+  specificProductIds?: string[];
+  minCartValue?: number;
+  autoApply?: boolean;
 };
 
 export const offers: Offer[] = [

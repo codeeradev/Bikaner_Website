@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Product } from '@/data/products';
-import { coupons } from '@/data/offers';
 import { assetUrl, request } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -19,8 +18,6 @@ type StoreState = {
   decrement: (id: string) => void;
   clearCart: () => void;
   toggleWishlist: (id: string) => void;
-  applyCoupon: (code: string) => { ok: boolean; message: string };
-  removeCoupon: () => void;
   refreshCart: () => Promise<void>;
   count: number;
   itemTotal: number;
@@ -30,15 +27,9 @@ type StoreState = {
   packagingCharge: number;
   discount: number;
   totalPayable: number;
-  freeDeliveryThreshold: number;
-  amountToFreeDelivery: number;
-  freeDeliveryProgress: number;
 };
 
 const StoreContext = createContext<StoreState | null>(null);
-const FREE_DELIVERY_THRESHOLD = 499;
-const PACKAGING_CHARGE = 10;
-const BASE_DELIVERY = 49;
 
 function readStored<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -70,7 +61,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setCart(readStored<CartLine[]>('bb_cart', []));
     setWishlist(readStored<string[]>('bb_wishlist', []));
-    setCoupon(readStored<string | null>('bb_coupon', null));
     setHydrated(true);
   }, []);
 
@@ -94,7 +84,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { if (hydrated) writeStored('bb_cart', cart); }, [cart, hydrated]);
   useEffect(() => { if (hydrated) writeStored('bb_wishlist', wishlist); }, [wishlist, hydrated]);
-  useEffect(() => { if (hydrated) writeStored('bb_coupon', coupon); }, [coupon, hydrated]);
 
   const addItem = useCallback((product: Product) => {
     setCart((current) => {
@@ -145,41 +134,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setWishlist((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }, []);
 
-  const applyCoupon = useCallback((code: string) => {
-    const normalized = code.trim().toUpperCase();
-    if (!normalized) return { ok: false, message: 'Enter a coupon code' };
-    if (!coupons[normalized]) return { ok: false, message: 'Invalid coupon code' };
-    setCoupon(normalized);
-    return { ok: true, message: `Coupon ${normalized} applied` };
-  }, []);
-
-  const removeCoupon = useCallback(() => setCoupon(null), []);
-
   const totals = useMemo(() => {
     const itemTotal = cart.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
     const originalTotal = cart.reduce((sum, line) => sum + (line.product.originalPrice ?? line.product.price) * line.quantity, 0);
     const youSave = originalTotal - itemTotal;
-    const deliveryCharge = itemTotal >= FREE_DELIVERY_THRESHOLD || itemTotal === 0 ? 0 : BASE_DELIVERY;
-    const packagingCharge = cart.length ? PACKAGING_CHARGE : 0;
-    const couponDiscount = coupon && coupons[coupon] ? Math.round((itemTotal * coupons[coupon].value) / 100) : 0;
     const useServerTotals = !!user && !!serverTotals;
-    const totalPayable = useServerTotals ? serverTotals.grandTotal : Math.max(0, itemTotal + deliveryCharge + packagingCharge - couponDiscount);
-    const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD - itemTotal);
-    const freeDeliveryProgress = Math.min(100, (itemTotal / FREE_DELIVERY_THRESHOLD) * 100);
+    const totalPayable = useServerTotals ? serverTotals.grandTotal : itemTotal;
 
     return {
       count: cart.reduce((sum, line) => sum + line.quantity, 0),
       itemTotal,
       originalTotal,
       youSave,
-      deliveryCharge: useServerTotals ? serverTotals.deliveryCharge : deliveryCharge,
-      packagingCharge: useServerTotals ? serverTotals.platformFee + serverTotals.taxAmount : packagingCharge,
-      discount: useServerTotals ? serverTotals.discountAmount : couponDiscount,
+      deliveryCharge: useServerTotals ? serverTotals.deliveryCharge : 0,
+      packagingCharge: useServerTotals ? serverTotals.platformFee + serverTotals.taxAmount : 0,
+      discount: useServerTotals ? serverTotals.discountAmount : 0,
       totalPayable,
-      amountToFreeDelivery,
-      freeDeliveryProgress,
     };
-  }, [cart, coupon, serverTotals, user]);
+  }, [cart, serverTotals, user]);
 
   const value: StoreState = {
     cart,
@@ -192,10 +164,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     decrement,
     clearCart,
     toggleWishlist,
-    applyCoupon,
-    removeCoupon,
     refreshCart: syncCart,
-    freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
     ...totals,
   };
 

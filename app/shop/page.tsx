@@ -11,7 +11,9 @@ import MobileFilterDrawer from '@/components/products/MobileFilterDrawer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { useStore } from '@/lib/store';
 import { getProducts } from '@/lib/api';
+import { getHomeCategories } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import type { Category } from '@/data/categories';
 
 export default function ShopPage() {
   const searchParams = useSearchParams();
@@ -23,12 +25,14 @@ export default function ShopPage() {
   const { count } = useStore();
   const { user, hydrated } = useAuth();
   const [catalogue, setCatalogue] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([{ id: 'all', name: 'All Categories', slug: 'all', icon: '▦' }]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!user) { setCatalogue([]); return; }
     void getProducts().then((items) => setCatalogue(items));
   }, [hydrated, user]);
+  useEffect(() => { void getHomeCategories().then((items) => setCategories([{ id: 'all', name: 'All Categories', slug: 'all', icon: '▦' }, ...items])); }, []);
 
   const filtered = useMemo(() => {
     let result = [...catalogue];
@@ -67,7 +71,7 @@ export default function ShopPage() {
     <div className="shop-page">
       <div className="shop-layout">
         <aside className="filter-sidebar">
-          <ProductFilters filters={filters} onChange={setFilters} onClear={() => setFilters(defaultFilters)} />
+          <ProductFilters filters={filters} onChange={setFilters} onClear={() => setFilters(defaultFilters)} categories={categories} />
         </aside>
 
         <main className="shop-main">
@@ -103,6 +107,7 @@ export default function ShopPage() {
         filters={filters}
         onChange={setFilters}
         onClear={() => setFilters(defaultFilters)}
+        categories={categories}
       />
       <CartDrawer open={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
     </div>

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { ArrowRight, Tag } from 'lucide-react';
-import { offers as fallbackOffers, type Offer } from '@/data/offers';
+import type { Offer } from '@/data/offers';
 
-export default function OffersBar({ offers = fallbackOffers }: { offers?: Offer[] }) {
+export default function OffersBar({ offers }: { offers: Offer[] }) {
   return (
     <section className="offers" id="offers">
       <div className="offer-intro">

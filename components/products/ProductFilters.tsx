@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { categories } from '@/data/categories';
+import { useEffect, useState } from 'react';
+import type { Category } from '@/data/categories';
 import { SlidersHorizontal, X } from 'lucide-react';
 
 export type Filters = {
@@ -26,13 +26,6 @@ const priceButtons = [
   { label: '₹500+', min: 500, max: 1000 },
 ];
 
-const offerOptions = [
-  { id: 'discounted', label: 'Discounted Products', count: 8 },
-  { id: 'buy-more', label: 'Buy More, Save More', count: 3 },
-  { id: 'combo', label: 'Combo Offers', count: 5 },
-  { id: 'first-order', label: 'First Order Offers', count: 2 },
-];
-
 const sortOptions = [
   { id: 'popularity', label: 'Popularity High to Low' },
   { id: 'price-low', label: 'Price Low to High' },
@@ -45,18 +38,16 @@ export default function ProductFilters({
   filters,
   onChange,
   onClear,
+  categories,
 }: {
   filters: Filters;
   onChange: (filters: Filters) => void;
   onClear: () => void;
+  categories: Category[];
 }) {
   const [localMin, setLocalMin] = useState(filters.priceMin);
   const [localMax, setLocalMax] = useState(filters.priceMax);
-
-  function toggleOffer(id: string) {
-    const offers = filters.offers.includes(id) ? filters.offers.filter((o) => o !== id) : [...filters.offers, id];
-    onChange({ ...filters, offers });
-  }
+  useEffect(() => { setLocalMin(filters.priceMin); setLocalMax(filters.priceMax); }, [filters.priceMin, filters.priceMax]);
 
   function applyPrice(min: number, max: number) {
     setLocalMin(min);
@@ -110,20 +101,6 @@ export default function ProductFilters({
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="filter-section">
-        <h4>Offers</h4>
-        {offerOptions.map((offer) => (
-          <label key={offer.id} className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={filters.offers.includes(offer.id)}
-              onChange={() => toggleOffer(offer.id)}
-            />
-            <span>{offer.label} <small>({offer.count})</small></span>
-          </label>
-        ))}
       </div>
 
       <div className="filter-section">

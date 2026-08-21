@@ -20,6 +20,7 @@ const sections = [
       { label: 'My Orders', href: '/orders' },
       { label: 'Delivery Address', href: '/checkout/address' },
       { label: 'Shipping Policy', href: '/info/shipping' },
+      { label: 'Refund Policy', href: '/info/refund' },
       { label: 'Privacy Policy', href: '/info/privacy' },
       { label: 'Terms & Conditions', href: '/info/terms' },
     ],
@@ -42,7 +43,7 @@ export default function Footer() {
             <span className="brand-mark"><span>♨</span></span>
             <span><strong>Bikaner</strong><em>Bakery</em></span>
           </div>
-          <p className="footer-tagline">{settings?.siteDescription || 'Freshly baked goods delivered to your doorstep.'}</p>
+          <p className="footer-tagline">{settings?.siteDescription === 'Complete franchise management solution' ? 'Freshly baked favourites for every occasion.' : settings?.siteDescription || 'Freshly baked goods delivered to your doorstep.'}</p>
           <div className="footer-contact">
             <span><MapPin size={16} /> Freshly baked and delivered near you</span>
             {settings?.contactPhone && <span><Phone size={16} /> {settings.contactPhone}</span>}

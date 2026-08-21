@@ -8,7 +8,7 @@ import { useStore } from '@/lib/store';
 import { useLocationStore } from '@/lib/location-store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { getHomeCategories, getProducts } from '@/lib/api';
+import { getHomeCategories, getProducts, request } from '@/lib/api';
 import type { Category } from '@/data/categories';
 import Image from 'next/image';
 
@@ -24,8 +24,7 @@ export default function Header() {
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<import('@/data/products').Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-
-  const locations = ['Bhamashah Nagar, Hisar', 'Model Town, Hisar', 'Civil Lines, Hisar', 'Sector 17, Chandigarh', 'Connaught Place, Delhi'];
+  const [addresses, setAddresses] = useState<Array<{ _id: string; house_No?: string; address?: string; landmark?: string; city?: string; isDefault?: boolean }>>([]);
 
   useEffect(() => {
     const query = search.trim();
@@ -35,6 +34,28 @@ export default function Header() {
     return () => window.clearTimeout(timer);
   }, [search, user]);
   useEffect(() => { void getHomeCategories().then(setCategories); }, []);
+  useEffect(() => {
+    if (!user) { setAddresses([]); return; }
+    void request<Array<{ _id: string; house_No?: string; address?: string; landmark?: string; city?: string; isDefault?: boolean }>>('/addresses').then((result) => {
+      const saved = result.data || [];
+      setAddresses(saved);
+      const selectedId = window.localStorage.getItem('bb_selected_address');
+      const selected = saved.find((address) => address._id === selectedId) || saved.find((address) => address.isDefault);
+      if (selected) setLocation([selected.house_No, selected.address, selected.landmark, selected.city].filter(Boolean).join(', '));
+    });
+  }, [user, setLocation]);
+
+  function chooseCurrentLocation() {
+    if (!navigator.geolocation) return toast('Location is not supported in this browser', 'error');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation(`Current location (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`);
+        setLocationOpen(false);
+        toast('Current location selected');
+      },
+      () => toast('Please allow location permission to use your current location.', 'error'),
+    );
+  }
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -67,14 +88,15 @@ export default function Header() {
             </button>
             {locationOpen && (
               <div className="dropdown-menu location-menu">
-                <p>Choose delivery location</p>
-                {locations.map((loc) => (
-                  <button key={loc} className={loc === location ? 'active' : ''} onClick={() => { setLocation(loc); setLocationOpen(false); toast('Delivery location updated'); }}>
-                    {loc}
-                  </button>
-                ))}
-                <button onClick={() => { if (!navigator.geolocation) return toast('Location is not supported in this browser', 'error'); navigator.geolocation.getCurrentPosition((position) => { setLocation(`Map location (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`); setLocationOpen(false); toast('Current map location selected'); }, () => toast('Please allow location permission to use the map location.', 'error')); }}>Use my current map location</button>
-                <button className="map-location-option" onClick={() => { setLocationOpen(false); window.location.href = '/checkout/address?map=1'; }}><MapPinned size={16} /> Choose a location on map</button>
+                <p>{addresses.length ? 'Your saved addresses' : 'Choose delivery location'}</p>
+                {addresses.map((address) => {
+                  const label = [address.house_No, address.address, address.landmark, address.city].filter(Boolean).join(', ');
+                  return <button key={address._id} className={label === location ? 'active' : ''} onClick={() => { window.localStorage.setItem('bb_selected_address', address._id); setLocation(label); setLocationOpen(false); toast('Delivery address selected'); }}>
+                    {label}{address.isDefault ? ' · Default' : ''}
+                  </button>;
+                })}
+                <button onClick={chooseCurrentLocation}>Use my current location</button>
+                <button className="map-location-option" onClick={() => { setLocationOpen(false); window.location.href = '/checkout/address?map=1'; }}><MapPinned size={16} /> Add a delivery address</button>
               </div>
             )}
           </div>

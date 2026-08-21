@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import CartItem from '@/components/cart/CartItem';
-import FreeDeliveryProgress from '@/components/cart/FreeDeliveryProgress';
 
 export default function OrderSummary({ nextStep }: { nextStep: '/checkout/payment' }) {
   const { cart, itemTotal, deliveryCharge, packagingCharge, youSave, discount, totalPayable, coupon } = useStore();
@@ -28,7 +27,6 @@ export default function OrderSummary({ nextStep }: { nextStep: '/checkout/paymen
             {cart.map((line) => <CartItem key={line.product.id} line={line} />)}
           </div>
 
-          <FreeDeliveryProgress />
 
           <div className="cart-totals">
             <div className="total-row"><span>Item Total</span><span>₹{itemTotal}</span></div>

@@ -14,7 +14,7 @@ type ApiResponse<T> = { success?: boolean; data?: T; message?: string };
 
 export type ApiResult<T> = { ok: boolean; data: T | null; message: string; status: number };
 export type AuthUser = { id: string; name?: string; email?: string; mobile?: string; profileImage?: string };
-export type PublicSettings = { siteTitle?: string; siteDescription?: string; contactEmail?: string; contactPhone?: string; aboutUs?: string; facebookUrl?: string; instagramUrl?: string; twitterUrl?: string; privacyPolicy?: string; termsAndConditions?: string; shippingPolicy?: string };
+export type PublicSettings = { siteTitle?: string; siteLogo?: string; siteDescription?: string; contactEmail?: string; contactPhone?: string; aboutUs?: string; refundPolicy?: string; facebookUrl?: string; instagramUrl?: string; twitterUrl?: string; linkedinUrl?: string; privacyPolicy?: string; termsAndConditions?: string; shippingPolicy?: string };
 
 export type HomeBanner = {
   id: string;
@@ -43,6 +43,10 @@ type ApiProduct = {
   sellingPrice?: number;
   discountValue?: number;
   categoryId?: { name?: string } | string;
+  sku?: string;
+  ingredients?: string[];
+  nutritionValues?: Record<string, { value?: number; unit?: string }>;
+  stock?: number;
 };
 
 type ApiOffer = {
@@ -51,6 +55,10 @@ type ApiOffer = {
   description?: string;
   offerType?: 'flat_discount' | 'percentage_discount' | 'bogo';
   discountValue?: number;
+  applicableOn?: 'cart' | 'specific_products';
+  specificProducts?: Array<{ _id?: string } | string>;
+  minCartValue?: number;
+  autoApply?: boolean;
 };
 
 export function assetUrl(value?: string) {
@@ -125,11 +133,13 @@ const categoryIcon = (name?: string) => {
 };
 
 export async function getHomeBanners(): Promise<HomeBanner[]> {
-  const banners = await get<Array<{ _id: string; title: string; image?: string; productId?: string | { _id?: string } }>>('/banners');
+  const banners = await get<Array<{ _id: string; title: string; image?: string; updatedAt?: string; productId?: string | { _id?: string } }>>('/banners');
   return (banners ?? []).map((banner) => ({
     id: banner._id,
     title: banner.title,
-    image: assetUrl(banner.image),
+    // The timestamp changes whenever an admin replaces the banner. This makes
+    // browsers fetch the latest uploaded image instead of reusing an old one.
+    image: banner.image ? `${assetUrl(banner.image)}${assetUrl(banner.image)?.includes('?') ? '&' : '?'}v=${encodeURIComponent(banner.updatedAt || banner._id)}` : undefined,
     productId: typeof banner.productId === 'string' ? banner.productId : banner.productId?._id,
   }));
 }
@@ -145,6 +155,7 @@ export async function getHomeCategories(): Promise<Category[]> {
     name: category.name,
     slug: category.slug || (category.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     icon: categoryIcon(category.name),
+    image: assetUrl(category.image),
   }));
 }
 
@@ -179,6 +190,18 @@ function mapProducts(products: ApiProduct[]): Product[] {
       ? `${product.discountValue}% OFF`
       : originalPrice > price ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF` : undefined;
 
+    const nutritionEntries = Object.entries(product.nutritionValues ?? {}).map(([name, nutrition]) => ({
+      name,
+      value: Number(nutrition?.value ?? 0),
+      unit: nutrition?.unit ?? '',
+    }));
+
+    // Extract calories from nutrition values
+    const caloriesEntry = nutritionEntries.find(
+      (n) => n.name.toLowerCase() === 'calories' || n.name.toLowerCase() === 'energy'
+    );
+    const calories = caloriesEntry ? Number(caloriesEntry.value) : 0;
+
     return {
       id: product._id,
       slug: product.slug || product._id,
@@ -190,9 +213,14 @@ function mapProducts(products: ApiProduct[]): Product[] {
       discount,
       rating: 0,
       reviews: 0,
-      calories: 0,
+      calories,
       keywords: [(product.name || '').toLowerCase(), category.toLowerCase()],
       image: assetUrl(product.image) || fallbackProductImage,
+      description: product.description,
+      sku: product.sku,
+      ingredients: product.ingredients ?? [],
+      nutrition: nutritionEntries,
+      stock: product.stock,
     };
   });
 }
@@ -204,5 +232,10 @@ export async function getActiveOffers(): Promise<Offer[]> {
     title: offer.name,
     subtitle: offer.description || (offer.offerType === 'bogo' ? 'Buy one, get one' : `Save ${offer.discountValue ?? 0}${offer.offerType === 'percentage_discount' ? '%' : '₹'}`),
     icon: offer.offerType === 'percentage_discount' ? '%' : offer.offerType === 'bogo' ? '2×1' : '₹',
+    offerType: offer.offerType,
+    applicableOn: offer.applicableOn,
+    specificProductIds: (offer.specificProducts ?? []).map((product) => typeof product === 'string' ? product : product._id).filter((id): id is string => Boolean(id)),
+    minCartValue: Number(offer.minCartValue ?? 0),
+    autoApply: Boolean(offer.autoApply),
   }));
 }

@@ -3,6 +3,7 @@
 import CheckoutSteps from '@/components/checkout/CheckoutSteps';
 import LocationSelector from '@/components/checkout/LocationSelector';
 import AddressForm from '@/components/checkout/AddressForm';
+import MapLocationPicker from '@/components/checkout/MapLocationPicker';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import { ShieldCheck } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function CheckoutAddressPage() {
           <OrderSummary nextStep="/checkout/payment" />
         </div>
       </div>
+      <MapLocationPicker />
     </div>
   );
 }

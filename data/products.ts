@@ -13,6 +13,11 @@ export type Product = {
   keywords: string[];
   image: string;
   badge?: string;
+  description?: string;
+  sku?: string;
+  ingredients?: string[];
+  nutrition?: Array<{ name: string; value: number; unit: string }>;
+  stock?: number;
 };
 
 const images = {

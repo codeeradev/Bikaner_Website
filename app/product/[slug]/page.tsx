@@ -58,13 +58,17 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             <span className="rating"><Star size={14} fill="currentColor" /> {product.rating}</span>
             <span className="reviews">{product.reviews} reviews</span>
           </div>
-          <p className="product-weight">{product.weight} · {product.calories} kcal</p>
+          <p className="product-weight">{product.weight}{product.calories > 0 ? ` · ${product.calories} kcal` : ''}</p>
           <div className="product-price-row">
             <strong className="price">₹{product.price}</strong>
             {product.originalPrice && <del>₹{product.originalPrice}</del>}
             {product.discount && <span className="discount-inline">{product.discount}</span>}
           </div>
-          <p className="product-description">Freshly baked {product.name.toLowerCase()} made with premium ingredients. Baked with love and delivered fresh to your doorstep.</p>
+          {product.description && <p className="product-description">{product.description}</p>}
+          {(product.ingredients?.length || product.nutrition?.length) && <div className="product-information">
+            {product.ingredients && product.ingredients.length > 0 && <p><b>Ingredients</b><span>{product.ingredients.join(', ')}</span></p>}
+            {product.nutrition && product.nutrition.length > 0 && <div><b>Nutrition</b><div className="nutrition-list">{product.nutrition.map((item) => <span key={item.name}>{item.name}: {item.value}{item.unit}</span>)}</div></div>}
+          </div>}
           <div className="product-actions">
             {cartLine ? (
               <div className="quantity-control large">

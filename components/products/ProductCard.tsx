@@ -44,7 +44,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <Link href={`/product/${product.id}`} className="product-title-link">
           <h3>{product.name}</h3>
         </Link>
-        <p>{product.weight} · {product.calories} kcal</p>
+        <p>{product.weight}{product.calories > 0 ? ` · ${product.calories} kcal` : ''}</p>
         <div className="rating-row">
           <span className="rating"><Star size={12} fill="currentColor" /> {product.rating}</span>
           <span className="reviews">{product.reviews} reviews</span>
