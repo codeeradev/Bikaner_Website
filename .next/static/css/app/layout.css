@@ -1,6 +1,6 @@
-/*!*************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[3]!./app/globals.css ***!
-  \*************************************************************************************************************************************************************************************************************************************************************/
+/*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/.pnpm/next@13.5.1_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[2]!./node_modules/.pnpm/next@13.5.1_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[13].oneOf[12].use[3]!./app/globals.css ***!
+  \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
 /*
 ! tailwindcss v3.3.3 | MIT License | https://tailwindcss.com
 *//*
@@ -1403,9 +1403,7 @@ video {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 .transition {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -1501,7 +1499,7 @@ button { cursor: pointer; }
 .site-shell, body { min-height: 100vh; background: radial-gradient(circle at 65% 24%, #fffdf9 0, var(--cream) 47%, #fff8f0 100%); }
 
 /* HEADER */
-.header { background: rgba(255,252,248,.94); border-bottom: 1px solid #f1e8de; position: sticky; top: 0; z-index: 20; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.header { background: rgba(255,252,248,.94); border-bottom: 1px solid #f1e8de; position: sticky; top: 0; z-index: 20; backdrop-filter: blur(16px); }
 .topbar { max-width: 1440px; margin: auto; height: 86px; display: flex; align-items: center; gap: 26px; padding: 0 38px; }
 .brand { display: flex; gap: 9px; align-items: center; color: var(--ink); text-decoration: none; min-width: 220px; }
 .brand-mark { color: #e86613; width: 54px; height: 54px; border: 5px solid #e86613; border-radius: 50% 50% 46% 46%; display: grid; place-items: center; font-size: 29px; line-height: 1; overflow: hidden; }

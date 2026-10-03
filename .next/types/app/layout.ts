@@ -1,4 +1,4 @@
-// File: /media/goutam/HardDisk/bikanerBiscuit/Bikaner_website/app/layout.tsx
+// File: D:\jsProjects\Bikaner_Website\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
